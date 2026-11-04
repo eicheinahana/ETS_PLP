@@ -175,6 +175,7 @@ class Parser:
         if self._match_kw("INNER"):
             kind = "INNER"
         elif self._match_kw("LEFT"):
+            self._match_kw("OUTER")
             kind = "LEFT"
         self._expect_kw("JOIN")
         source = self._table_ref()
