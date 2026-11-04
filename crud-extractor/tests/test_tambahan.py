@@ -7,6 +7,7 @@ Isi dengan:
 """
 import pytest
 
+# LEXER
 from crud.lexer import LexError, TokenType as T, tokenize
 
 def test_dua_kutip_berturut_turut():
@@ -16,3 +17,16 @@ def test_dua_kutip_berturut_turut():
 def test_operator_terpanjang():
     toks = tokenize("<> <= >=")
     assert toks[0].value == "<>" and toks[1].value == "<=" and toks[2].value == ">="
+
+
+# PARSER
+from crud import ast_nodes as ast
+from crud.parser import parse_sql
+
+def test_hanya_statement_gagal_yang_dibuang():
+    s = parse_sql("SELECT id FROM ; \n SELECT nama FROM pelanggan;")
+    assert len(s.errors) == 1
+    assert len(s.statements) == 1
+    assert s.statements[0].line == 2
+    assert s.statements[0].sources[0].name == "pelanggan"
+
