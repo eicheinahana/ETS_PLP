@@ -90,7 +90,7 @@ class Parser:
     def _synchronize(self) -> None:
         # Panic mode (Crafting Interpreters bab 6): buang token sampai
         # titik aman, lalu lanjutkan parsing.
-        while not self._at_end():
+        while not self._at_end() and not self._match(T.SEMICOLON):
             self._advance()
 
     def _statement(self):
