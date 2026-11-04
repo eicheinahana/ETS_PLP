@@ -22,6 +22,7 @@ def test_operator_terpanjang():
 # PARSER
 from crud import ast_nodes as ast
 from crud.parser import parse_sql
+from test_parser import one
 
 def test_hanya_statement_gagal_yang_dibuang():
     s = parse_sql("SELECT id FROM ; \n SELECT nama FROM pelanggan;")
@@ -30,3 +31,7 @@ def test_hanya_statement_gagal_yang_dibuang():
     assert s.statements[0].line == 2
     assert s.statements[0].sources[0].name == "pelanggan"
 
+def test_left_outer_join():
+    s = one("SELECT a.id FROM a LEFT OUTER JOIN b ON b.a_id = a.id")
+    assert s.joins[0].kind == "LEFT"
+    assert s.joins[0].source.name == "b"
