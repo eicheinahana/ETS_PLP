@@ -35,3 +35,8 @@ def test_left_outer_join():
     s = one("SELECT a.id FROM a LEFT OUTER JOIN b ON b.a_id = a.id")
     assert s.joins[0].kind == "LEFT"
     assert s.joins[0].source.name == "b"
+
+def test_and_didahulukan_dari_or():
+    s = one("SELECT a FROM t WHERE x = 1 OR y = 2 AND z = 3")
+    assert isinstance(s.where, ast.BinaryOp) and s.where.op == "OR"
+    assert isinstance(s.where.right, ast.BinaryOp) and s.where.right.op == "AND"
