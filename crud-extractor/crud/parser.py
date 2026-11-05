@@ -90,7 +90,7 @@ class Parser:
     def _synchronize(self) -> None:
         # Panic mode (Crafting Interpreters bab 6): buang token sampai
         # titik aman, lalu lanjutkan parsing.
-        while not self._at_end():
+        while not self._at_end() and not self._match(T.SEMICOLON):
             self._advance()
 
     def _statement(self):
@@ -175,6 +175,7 @@ class Parser:
         if self._match_kw("INNER"):
             kind = "INNER"
         elif self._match_kw("LEFT"):
+            self._match_kw("OUTER")
             kind = "LEFT"
         self._expect_kw("JOIN")
         source = self._table_ref()
@@ -211,7 +212,8 @@ class Parser:
             return ast.Insert(table, columns, rows, None, line=start.line)
         if self._check_kw("SELECT"):
             # TODO(T1): dukung INSERT INTO ... SELECT ... (SPESIFIKASI.md bagian 3 dan 5).
-            raise ParseError("INSERT ... SELECT belum didukung", self._peek())
+            query = self._select()
+            return ast.Insert(table, columns, [], query, line=start.line)
         raise ParseError("diharapkan VALUES atau SELECT", self._peek())
 
     def _value_row(self) -> list:
@@ -246,15 +248,23 @@ class Parser:
 
     # ---- ekspresi (dari presedensi terendah ke tertinggi) ---------------
     def _expr(self):
-        return self._logical()
+        return self._or()
 
-    def _logical(self):
-        # OR dan AND: operator logika biner, asosiatif kiri.
-        left = self._not()
-        while self._check_kw("AND", "OR"):
+    def _or(self):
+        # OR: operator logika biner, asosiatif kiri.
+        left = self._and()
+        while self._check_kw("OR"):
             op = self._advance().value
-            left = ast.BinaryOp(left, op, self._not())
+            left = ast.BinaryOp(left, op, self._and())
         return left
+
+    def _and(self):
+            # AND: operator logika biner, asosiatif kiri.
+            left = self._not()
+            while self._check_kw("AND"):
+                op = self._advance().value
+                left = ast.BinaryOp(left, op, self._not())
+            return left
 
     def _not(self):
         if self._match_kw("NOT"):
