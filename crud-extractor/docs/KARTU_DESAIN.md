@@ -1,19 +1,11 @@
 # Kartu Desain
 
-Tuliskan lima keputusan desain penting dalam pekerjaan kalian. Untuk tiap keputusan, sebutkan
-alternatif yang ditolak dan alasannya. Contoh topik (boleh memilih yang lain):
-
-- bagaimana parser membedakan `*` sebagai "semua kolom" dan sebagai perkalian;
-- di mana dan bagaimana presedensi `AND`/`OR` dinyatakan;
-- mengapa error recovery berhenti di `;`, bukan di keyword `SELECT` berikutnya;
-- urutan pencarian scope dan akibatnya pada shadowing serta correlated subquery;
-- mengapa kolom tanpa qualifier hanya dilihat di scope terdalam, dan apa kelemahannya;
-- bagaimana implementasi `INSERT ... SELECT` atau komentar blok kalian.
+Lima keputusan desain penting dalam pekerjaan kami, beserta alternatif yang ditolak dan alasannya.
 
 | No | Keputusan | Alternatif yang ditolak | Alasan |
 | --- | --- | --- | --- |
-| 1 | | | |
-| 2 | | | |
-| 3 | | | |
-| 4 | | | |
-| 5 | | | |
+| 1 | **Presedensi `AND`/`OR` dinyatakan lewat satu fungsi per level**: `_expr` memanggil `_or`, `_or` memanggil `_and`, dan seterusnya (menggantikan satu `_logical`). | Mempertahankan satu fungsi `_logical` dengan loop untuk `AND` dan `OR`; atau tabel presedensi (precedence climbing). | `_logical` menyamakan `AND` dan `OR` sehingga `a=1 OR b=2 AND c=3` terbaca `(a=1 OR b=2) AND c=3`. Satu fungsi per level mengikuti cara Bab 6: operator yang lebih kuat berada di level yang lebih dalam. Strukturnya juga berpadanan langsung dengan tabel SPEC 3.1, jadi mudah diperiksa baris demi baris. Precedence climbing lebih ringkas tetapi kurang mudah dicocokkan dengan grammar. |
+| 2 | **Error recovery berhenti sesudah `;`**: `_synchronize` membuang token sampai dan termasuk `;` (atau EOF), lalu parsing lanjut ke statement berikutnya. | Berhenti di keyword awal statement berikutnya (`SELECT`, `INSERT`, dst.). | SPEC 6 mewajibkan tepat satu error per statement rusak. `SELECT` juga muncul di dalam subquery dan `INSERT ... SELECT`, jadi berhenti di keyword bisa berhenti di tengah statement yang sama dan menghasilkan error ganda. `;` adalah batas statement yang pasti. Kondisi `while` kami tulis lewat De Morgan supaya loop tidak membuang token sampai EOF dan tidak hang saat error muncul di EOF tanpa `;`. |
+| 3 | **Komentar blok `/* ... */` dipindai dengan loop yang membandingkan dua karakter (`*` lalu `/`) memakai `_peek()` dan `_advance()` eksplisit**, dan komentar yang tidak ditutup memunculkan `LexError`. | Memakai `_match` di dalam kondisi `while`; atau regex untuk membuang komentar sebelum lexing. | `_match` mengonsumsi karakter sebagai efek samping, sehingga jumlah `_advance()` mudah salah (kasus `/**/` dan `/* a */x`). Regex pada teks mentah bertentangan dengan pendekatan lexer Bab 4 dan tidak membedakan `/*` di dalam string. Cabang `raise` harus berada di luar loop supaya terjangkau saat EOF tercapai. |
+| 4 | **`INSERT ... SELECT` dibedakan dari `VALUES` dengan melihat token sesudah daftar kolom**: `VALUES` mengisi `rows` lewat `_value_row()`; `SELECT` memanggil `_select()` dan `values` diisi `[]`. | Memakai `None` atau satu field campuran untuk `values`; atau mencoba `_value_row()` lebih dulu lalu mundur (backtrack) bila gagal. | Satu token pendek (`VALUES` atau `SELECT`) sudah cukup untuk memilih cabang, jadi tidak perlu backtracking (cukup lookahead satu token, seperti recursive descent di Bab 6). Field `values` harus selalu list supaya kode lain (analyzer, `pretty`) tidak perlu memeriksa `None`. |
+| 5 | **Resolver adalah pass terpisah setelah parsing dengan rantai scope (stack).** Qualifier dicari dari scope terdalam ke luar; kolom tanpa qualifier hanya melihat scope terdalam. | Resolusi langsung di dalam parser; mencari kolom tanpa qualifier ke seluruh rantai scope; memilih tabel pertama bila ambigu. | SPEC 7 melarang resolusi di parser, dan alias dipakai sebelum dideklarasikan (daftar SELECT lebih dulu dari FROM), jadi baru bisa diputuskan setelah AST lengkap (Bab 11). Pencarian dari dalam ke luar menghasilkan shadowing dan correlated subquery yang benar. Kolom tanpa qualifier tidak boleh naik ke scope luar karena tanpa skema database tidak ada dasar untuk memilih tabel mana; bila ada lebih dari satu tabel hasilnya warning ambigu dan `resolved = None`, bukan tebakan. **Kelemahan:** kolom milik tabel luar yang ditulis tanpa qualifier di subquery tidak ter-resolve, dan kolom ambigu tidak bisa dipetakan ke tabel (batas pendekatan karena tidak ada skema). |

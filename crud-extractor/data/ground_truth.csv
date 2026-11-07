@@ -17,8 +17,8 @@ audit.sql,12,pelanggan,R
 audit.sql,12,pesanan,R
 audit.sql,16,sesi,D
 audit.sql,18,pengguna,R
-audit.sql,20,pelanggan,U
-audit.sql,20,pesanan,R
+audit.sql,20,pelanggan,R
+audit.sql,20,pesanan,U
 pemeliharaan.sql,3,crm.alamat,R
 pemeliharaan.sql,3,crm.pelanggan,R
 pemeliharaan.sql,8,crm.pelanggan,U
