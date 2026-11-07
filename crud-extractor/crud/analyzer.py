@@ -19,8 +19,8 @@ def analyze_statement(stmt) -> dict[str, set[str]]:
     elif isinstance(stmt, ast.Update):
         usage[stmt.table.name].add("U")
         for assignment in stmt.assignments:
-            _collect(assignment.value, usage, "U")
-        _collect(stmt.where, usage, "U")
+            _collect(assignment.value, usage, "R") #label U diubah menjadi R karena assignment value adalah read
+        _collect(stmt.where, usage, "R") # label U diubah menjadi R karena where clause adalah read
     elif isinstance(stmt, ast.Delete):
         usage[stmt.table.name].add("D")
         _collect(stmt.where, usage, "R")
